@@ -1,0 +1,6 @@
+{
+    "source": "https://www.gov.br/trabalho-e-emprego/pt-br/assuntos/cbo/servicos/downloads/cbo2002-ocupacao.csv",
+    "requested_at": "2026-09-03T13:06:25.998728",
+    "status_code": 200,
+    "content_type": "text/csv"
+}
