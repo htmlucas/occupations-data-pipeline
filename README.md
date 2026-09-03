@@ -1,102 +1,155 @@
 # Occupations Data Pipeline
 
-Pipeline de Engenharia de Dados desenvolvido de forma incremental para ingestão, transformação, validação e análise de dados sobre ocupações profissionais.
+Pipeline de Engenharia de Dados desenvolvido de forma incremental para ingestão, transformação, validação, armazenamento e análise de dados sobre ocupações profissionais.
 
-O projeto utiliza dados da **Classificação Brasileira de Ocupações (CBO)** como fonte inicial e será evoluído gradualmente para trabalhar com banco de dados, cloud e processamento de dados em maior escala.
+O projeto utiliza dados relacionados à **Classificação Brasileira de Ocupações (CBO)** como fonte principal e será evoluído gradualmente para trabalhar com diferentes formatos de dados, bancos de dados, cloud e processamento de dados em maior escala.
 
 ## Objetivo
 
 Construir um pipeline de dados sobre ocupações profissionais que possa futuramente disponibilizar informações como:
 
-* Código e nome da ocupação
-* Nomes similares
-* Descrição da ocupação
-* Conhecimentos e habilidades
-* Skills
-* Certificações
-* Ocupações relacionadas
-* Outros dados relevantes para análise do mercado de trabalho
+- Código da ocupação
+- Nome da ocupação
+- Nomes similares
+- Descrição
+- Skills e conhecimentos
+- Certificações
+- Ocupações relacionadas
+- Outros dados relevantes para análise
 
-O foco principal do projeto é **Engenharia de Dados**, trabalhando com ingestão, transformação, qualidade, armazenamento, modelagem e análise dos dados.
+O foco do projeto é praticar conceitos de **Engenharia de Dados**, como:
 
-## Evolução planejada
-
-O projeto será desenvolvido em etapas:
-
-```text
-Fonte de dados
-     ↓
-Python + Pandas
-     ↓
-CSV / JSON / Parquet
-     ↓
-PostgreSQL
-     ↓
-SQL + Analytics
-     ↓
-Docker
-     ↓
-AWS S3
-     ↓
-AWS RDS
-     ↓
-Terraform
-     ↓
-Kafka / Streaming
-     ↓
-Processamento distribuído
-```
-
-A ordem poderá ser ajustada conforme a evolução do projeto e os requisitos de cada etapa.
+- Ingestão
+- Transformação
+- Qualidade de dados
+- Validação
+- Armazenamento
+- Modelagem
+- SQL
+- Análise
+- Arquitetura de dados
 
 ---
 
-# Etapa 1 — Ingestão e limpeza dos dados
+## Evolução do projeto
 
-Nesta primeira etapa, o objetivo é construir uma rotina inicial para carregar os dados de ocupações, realizar validações básicas de qualidade e gerar uma versão processada do dataset.
-
-## Pipeline atual
+O projeto será desenvolvido em etapas, aumentando gradualmente a complexidade:
 
 ```text
-data/raw/cbo.csv
-       │
-       ▼
-   Pandas
-       │
-       ▼
-Validação e limpeza
-       │
-       ├── Remoção de linhas duplicadas
-       ├── Validação de CBOs duplicados
-       └── Remoção de ocupações sem nome
-       │
-       ▼
-data/processed/
-occupations_processed.csv
+API pública
+    ↓
+Python + Requests
+    ↓
+Pandas / DataFrames
+    ↓
+CSV / JSON / Parquet
+    ↓
+PostgreSQL
+    ↓
+SQL + Analytics
+    ↓
+Docker
+    ↓
+AWS S3
+    ↓
+AWS RDS
+    ↓
+Terraform
+    ↓
+Kafka / Streaming
+    ↓
+Processamento distribuído
 ```
 
-## Regras de qualidade
+A ordem poderá ser ajustada conforme os requisitos e aprendizados de cada etapa.
 
-Atualmente o pipeline realiza as seguintes verificações:
+---
 
-### Linhas duplicadas
+## Etapa 1 — Ingestão e limpeza inicial
 
-Verifica se existem registros completamente iguais no DataFrame.
+Na primeira etapa, o projeto utilizava um arquivo CSV contendo dados de ocupações como fonte local.
 
-```python
-df.duplicated().sum()
+O pipeline realizava:
+
+- leitura do CSV com Pandas;
+- remoção de linhas completamente duplicadas;
+- identificação de CBOs duplicados;
+- remoção de registros sem nome de ocupação;
+- filtro opcional por palavra-chave;
+- geração de um CSV processado.
+
+### Fluxo inicial
+
+```text
+CSV
+ ↓
+Pandas
+ ↓
+Validação
+ ↓
+Limpeza
+ ↓
+CSV processado
 ```
+
+---
+
+## Etapa 2 — Ingestão via API
+
+Na segunda etapa, o pipeline passou a realizar a ingestão dos dados através de uma **API pública**, utilizando Python e Requests.
+
+O objetivo foi simular um cenário mais próximo de um pipeline real, no qual os dados precisam ser coletados de uma fonte externa.
+
+### Fluxo atual
+
+```text
+API pública
+     ↓
+Python + Requests
+     ↓
+JSON bruto
+     ↓
+Pandas / DataFrame
+     ↓
+Validação
+     ↓
+Transformação
+     ↓
+CSV processado
+```
+
+A resposta original da API é preservada na camada `raw`, enquanto os dados tratados são armazenados na camada `processed`.
+
+### Tratamento de erros
+
+A ingestão possui tratamento para situações relacionadas à comunicação com a API, incluindo:
+
+- erros de conexão;
+- erros HTTP;
+- respostas inválidas;
+- falhas durante a requisição.
+
+As respostas HTTP são validadas antes do processamento dos dados.
+
+---
+
+## Qualidade dos dados
+
+Durante o processamento são realizadas validações para identificar problemas na origem dos dados.
+
+### Registros duplicados
+
+São identificadas linhas completamente duplicadas utilizando os registros presentes no DataFrame.
 
 ### CBOs duplicados
 
 O campo `cod_cbo` é tratado como identificador único da ocupação.
 
-O pipeline verifica quantos códigos CBO distintos aparecem mais de uma vez.
+A validação contabiliza quantos **CBOs distintos aparecem mais de uma vez**, independentemente da quantidade de ocorrências.
 
-Exemplo:
+Por exemplo:
 
 ```text
-cod_cbo
 100 → 3 ocorrências
 200 → 1 ocorrência
 300 → 2 ocorrências
@@ -110,20 +163,53 @@ CBOs únicos duplicados: 2
 
 Os CBOs `100` e `300` são contabilizados uma vez cada.
 
-### Nomes ausentes
+### Registros sem nome
 
-Registros que não possuem `nom_cbo` são removidos da camada processada.
+Registros que não possuem nome da ocupação são removidos da camada processada.
 
 ---
 
-# Estrutura do projeto
+## Camadas de dados
+
+O projeto utiliza uma separação simples entre os dados recebidos e os dados processados.
+
+```text
+data/
+│
+├── raw/
+│   └── dados recebidos da fonte
+│
+└── processed/
+    └── dados tratados
+```
+
+### Raw
+
+Contém os dados originais recebidos da fonte.
+
+Essa camada deve permanecer **inalterada**, permitindo que os dados originais possam ser utilizados novamente caso as regras de transformação sejam modificadas.
+
+### Processed
+
+Contém os dados após as etapas de:
+
+- validação;
+- limpeza;
+- remoção de registros inválidos;
+- remoção de duplicidades;
+- aplicação de filtros.
+
+---
+
+## Estrutura do projeto
 
 ```text
 occupations-data-pipeline/
 │
 ├── data/
 │   ├── raw/
-│   │   └── cbo.csv
+│   │   ├── cbo.csv
+│   │   └── ...
 │   │
 │   └── processed/
 │       └── occupations_processed.csv
@@ -131,28 +217,49 @@ occupations-data-pipeline/
 ├── src/
 │   └── ingest_occupations.py
 │
-├── .gitignore
+├── requirements.txt
 ├── README.md
-└── requirements.txt
+└── .gitignore
 ```
 
-## Tecnologias
+---
 
-* Python
-* Pandas
-* CSV
-* Git / GitHub
+## Tecnologias utilizadas
+
+### Atualmente
+
+- Python
+- Requests
+- Pandas
+- CSV
+- JSON
+- Git
+- GitHub
+
+### Futuramente
+
+- Parquet
+- PostgreSQL
+- SQL
+- Docker
+- AWS S3
+- AWS RDS
+- Terraform
+- Kafka
+- Spark
+
+---
 
 ## Como executar
 
-Clone o repositório:
+Clone o projeto:
 
 ```bash
 git clone <repository-url>
 cd occupations-data-pipeline
 ```
 
-Crie e ative um ambiente virtual:
+Crie um ambiente virtual:
 
 ```bash
 python -m venv .venv
@@ -176,24 +283,20 @@ Execute o pipeline:
 python src/ingest_occupations.py
 ```
 
-Também é possível filtrar as ocupações por uma palavra-chave:
+Para realizar uma busca por palavra-chave:
 
 ```bash
 python src/ingest_occupations.py --search engenheiro
 ```
 
-O resultado será salvo em:
+---
 
-```text
-data/processed/
-```
-
-## Exemplo de saída
+## Exemplo de execução
 
 ```text
 Registros recebidos: 13
 Linhas duplicadas encontradas: 10
-CBOs unicos duplicados: 3
+CBOs únicos duplicados: 3
 Registros sem nome: 3
 Registros após limpeza: 2
 Registros descartados: 11
@@ -201,67 +304,105 @@ Registros após filtro: 2
 Arquivo salvo em: data/processed/occupations_processed.csv
 ```
 
-Os valores acima são apenas um exemplo utilizado para demonstrar as validações do pipeline.
+Os valores acima representam apenas um conjunto de testes utilizado durante o desenvolvimento e não representam necessariamente a quantidade de registros existente na fonte oficial.
 
 ---
 
-# Próximas etapas
+## Próximas etapas
 
-### Etapa 2
+### Etapa 3 — CSV, JSON e Parquet
 
-* Melhorar a camada de dados processados
-* Introduzir Parquet
-* Comparar CSV e Parquet
-* Explorar características dos dados
+Trabalhar com diferentes formatos de armazenamento e entender quando cada um é mais adequado.
 
-### Etapa 3
+Objetivos:
 
-* Modelagem relacional
-* PostgreSQL
-* Criação de tabelas
-* Carga dos dados
+- trabalhar com CSV;
+- trabalhar com JSON;
+- introduzir o formato Parquet;
+- comparar tamanho dos arquivos;
+- comparar estrutura dos dados;
+- ler os arquivos novamente utilizando Pandas;
+- validar se os dados permanecem consistentes após a conversão.
 
-### Etapa 4
+Fluxo esperado:
 
-* Consultas SQL
-* Métricas
-* Análises sobre as ocupações
+```text
+API
+ ↓
+JSON Raw
+ ↓
+Pandas / DataFrame
+ ↓
+Validação
+ ↓
+CSV
+ ↓
+Parquet
+```
 
-### Etapa 5
+### Etapa 4 — PostgreSQL
 
-* Docker
-* Containerização do pipeline e PostgreSQL
+- Modelagem relacional;
+- criação das tabelas;
+- definição de chaves;
+- carga dos dados;
+- constraints;
+- integridade dos dados;
+- conexão do pipeline com o banco.
 
-### Etapa 6
+### Etapa 5 — SQL e Analytics
 
-* AWS S3
-* Armazenamento dos dados na nuvem
+- consultas analíticas;
+- agregações;
+- métricas;
+- análise das ocupações;
+- criação de indicadores;
+- exploração dos dados utilizando SQL.
 
-### Etapa 7
+### Etapa 6 — Docker
 
-* AWS RDS
-* PostgreSQL gerenciado na AWS
+- Containerização do pipeline;
+- PostgreSQL em container;
+- configuração do ambiente;
+- execução reproduzível do projeto.
 
-### Etapa 8
+### Etapa 7 — AWS S3
 
-* Terraform
-* Infraestrutura como código
+- armazenamento dos dados na nuvem;
+- organização dos dados por camadas;
+- introdução ao conceito de Data Lake;
+- integração do pipeline com armazenamento em cloud.
+
+### Etapa 8 — AWS RDS
+
+- utilização de PostgreSQL gerenciado;
+- conexão do pipeline com banco remoto;
+- separação entre aplicação, banco e infraestrutura.
+
+### Etapa 9 — Terraform
+
+- Infraestrutura como código;
+- provisionamento dos recursos utilizados pelo projeto;
+- configuração reproduzível da infraestrutura.
 
 ### Etapas futuras
 
-* Kafka
-* Streaming
-* Processamento de fluxos
-* Spark
-* Processamento distribuído
-* Enriquecimento dos dados com IA
+Após a construção do pipeline principal, o projeto poderá evoluir para:
+
+- Kafka;
+- processamento de streaming;
+- Apache NiFi;
+- Spark;
+- processamento distribuído;
+- enriquecimento das informações das ocupações;
+- geração de dados adicionais utilizando IA.
 
 ---
 
-# Status
+## Status
 
-🚧 Projeto em desenvolvimento.
+🚧 Em desenvolvimento
 
-**Etapa atual:** 1 — Ingestão e limpeza inicial dos dados.
+**Etapa atual:** 2 — Ingestão de dados via API pública.
 
-O projeto será atualizado incrementalmente conforme novas etapas de Engenharia de Dados forem implementadas.
+O projeto está sendo desenvolvido incrementalmente como parte de uma jornada prática de aprendizado em Engenharia de Dados.
