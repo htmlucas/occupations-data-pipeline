@@ -13,3 +13,8 @@ def get_connection():
             user=os.getenv("DB_USER"),
             password=os.getenv("DB_PASSWORD")
     )
+
+def execute_sql_file(cursor, sql_file):
+    query = sql_file.read_text(encoding="utf-8")
+    cursor.execute(query)
+    return cursor.fetchall()

@@ -1,0 +1,1 @@
+SELECT cod_cbo, nome_cbo from occupations where nome_cbo ILIKE '%engenheiro%' LIMIT 10

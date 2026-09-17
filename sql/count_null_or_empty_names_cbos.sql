@@ -1,0 +1,1 @@
+SELECT count(nome_cbo) from occupations where nome_cbo IS NULL or TRIM(nome_cbo) = ''

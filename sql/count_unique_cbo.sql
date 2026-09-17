@@ -1,0 +1,1 @@
+SELECT  COUNT(DISTINCT cod_cbo) from occupations

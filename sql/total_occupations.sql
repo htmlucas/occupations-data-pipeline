@@ -1,0 +1,1 @@
+select count(*) as quantidade_ocupacoes from occupations
