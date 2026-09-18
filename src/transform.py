@@ -1,7 +1,7 @@
 
 
 def transform_occupations(df):
-    required_columns = ['CODIO', 'TITULO']
+    required_columns = ['CODIGO', 'TITULO']
     missing_columns = set(required_columns) - set(df.columns)
 
     if missing_columns:

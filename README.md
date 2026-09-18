@@ -64,345 +64,53 @@ Processamento distribuído
 A ordem poderá ser ajustada conforme os requisitos e aprendizados de cada etapa.
 
 ---
+# Etapa 1 (Primeiro Ingestão de dados via arquivo)
+Comecei um projeto contínuo de Engenharia de Dados utilizando dados de ocupações profissionais.
 
-## Etapa 1 — Ingestão e limpeza inicial
+Nesta primeira etapa, construí uma rotina em Python que consome uma fonte pública, transforma os registros em um DataFrame com Pandas, valida duplicidades e campos obrigatórios e salva os dados em camadas raw e processed.
 
-Na primeira etapa, o projeto utilizava um arquivo CSV contendo dados de ocupações como fonte local.
+Próximos passos: persistir os dados em PostgreSQL, criar consultas analíticas e preparar o pipeline para evoluir posteriormente para cloud e infraestrutura como código.
+# Etapa 2 (Ingestão de Dados via API)
+Evoluí meu pipeline de dados sobre ocupações profissionais para consumir uma API pública usando Python e Requests. A resposta original agora é preservada na camada raw, enquanto o Pandas realiza a transformação, validação e geração da camada processada.
 
-O pipeline realizava:
+Nesta etapa pratiquei ingestão via API, tratamento de erros, conversão de JSON para DataFrame e regras de qualidade como unicidade do código CBO e remoção de registros sem nome.
+# Etapa 3 (Comparação entre Parquet, Json e CSV)
+Evoluí meu pipeline de dados sobre ocupações profissionais para trabalhar com diferentes formatos de armazenamento.
 
-- leitura do CSV com Pandas;
-- remoção de linhas completamente duplicadas;
-- identificação de CBOs duplicados;
-- remoção de registros sem nome de ocupação;
-- filtro opcional por palavra-chave;
-- geração de um CSV processado.
+A resposta original da API continua sendo preservada em JSON na camada raw, enquanto os dados processados agora são exportados em CSV e Parquet.
 
-### Fluxo inicial
+Também implementei uma comparação entre os formatos considerando registros, colunas e tamanho dos arquivos.
 
-```text
-CSV
- ↓
-Pandas
- ↓
-Validação
- ↓
-Limpeza
- ↓
-CSV processado
-```
+Com isso, avancei na compreensão de como pipelines reais organizam dados brutos e processados para diferentes objetivos de integração, inspeção e análise.
 
----
+Próximo passo: modelar esses dados em PostgreSQL.
+# Etapa 4 (Persistir dados no PostgreSQL)
+Evoluí meu pipeline de dados sobre ocupações profissionais para utilizar o PostgreSQL como camada de armazenamento persistente.
 
-## Etapa 2 — Ingestão via API
+O fluxo agora realiza a ingestão via API pública, processa os dados com Pandas, gera os arquivos tratados e carrega os registros em uma tabela relacional.
 
-Na segunda etapa, o pipeline passou a realizar a ingestão dos dados através de uma **API pública**, utilizando Python e Requests.
+Também implementei validações para evitar duplicidade de códigos CBO em execuções repetidas e realizei consultas SQL para conferir a consistência da carga.
 
-O objetivo foi simular um cenário mais próximo de um pipeline real, no qual os dados precisam ser coletados de uma fonte externa.
+Com essa etapa, comecei a conectar as fases de ingestão, transformação e armazenamento em banco dentro do mesmo pipeline.
 
-### Fluxo atual
+Próximo passo: construir consultas analíticas sobre os dados carregados.
+# Etapa 5 (Consultas Análiticas)
+Evoluí meu pipeline de dados sobre ocupações profissionais para além da ingestão e do armazenamento.
 
-```text
-API pública
-     ↓
-Python + Requests
-     ↓
-JSON bruto
-     ↓
-Pandas / DataFrame
-     ↓
-Validação
-     ↓
-Transformação
-     ↓
-CSV processado
-```
+Nesta etapa, criei consultas analíticas em PostgreSQL para medir a quantidade de ocupações, validar a consistência dos registros, pesquisar padrões nos nomes e comparar os dados armazenados com os arquivos processados.
 
-A resposta original da API é preservada na camada `raw`, enquanto os dados tratados são armazenados na camada `processed`.
+Também integrei essas consultas com Python para gerar resultados de forma reproduzível.
 
-### Tratamento de erros
+O projeto agora já cobre ingestão, transformação, persistência e uma primeira camada de análise.
 
-A ingestão possui tratamento para situações relacionadas à comunicação com a API, incluindo:
+Próximo passo: preparar o ambiente com Docker para tornar a execução mais reproduzível.
+# Etapa 6 (Docker)
+Evoluí meu pipeline de dados sobre ocupações profissionais para um ambiente reproduzível com Docker.
 
-- erros de conexão;
-- erros HTTP;
-- respostas inválidas;
-- falhas durante a requisição.
+Agora o projeto sobe o PostgreSQL e o pipeline Python em containers, utilizando variáveis de ambiente, volume persistente e comunicação entre serviços.
 
-As respostas HTTP são validadas antes do processamento dos dados.
+Com isso, reduzi a dependência da configuração local e aproximei o projeto de um cenário mais próximo do desenvolvimento profissional.
 
----
+O fluxo já contempla ingestão via API, transformação com Pandas, geração de arquivos, carga no PostgreSQL e consultas analíticas.
 
-## Qualidade dos dados
-
-Durante o processamento são realizadas validações para identificar problemas na origem dos dados.
-
-### Registros duplicados
-
-São identificadas linhas completamente duplicadas utilizando os registros presentes no DataFrame.
-
-### CBOs duplicados
-
-O campo `cod_cbo` é tratado como identificador único da ocupação.
-
-A validação contabiliza quantos **CBOs distintos aparecem mais de uma vez**, independentemente da quantidade de ocorrências.
-
-Por exemplo:
-
-```text
-100 → 3 ocorrências
-200 → 1 ocorrência
-300 → 2 ocorrências
-```
-
-Resultado:
-
-```text
-CBOs únicos duplicados: 2
-```
-
-Os CBOs `100` e `300` são contabilizados uma vez cada.
-
-### Registros sem nome
-
-Registros que não possuem nome da ocupação são removidos da camada processada.
-
----
-
-## Camadas de dados
-
-O projeto utiliza uma separação simples entre os dados recebidos e os dados processados.
-
-```text
-data/
-│
-├── raw/
-│   └── dados recebidos da fonte
-│
-└── processed/
-    └── dados tratados
-```
-
-### Raw
-
-Contém os dados originais recebidos da fonte.
-
-Essa camada deve permanecer **inalterada**, permitindo que os dados originais possam ser utilizados novamente caso as regras de transformação sejam modificadas.
-
-### Processed
-
-Contém os dados após as etapas de:
-
-- validação;
-- limpeza;
-- remoção de registros inválidos;
-- remoção de duplicidades;
-- aplicação de filtros.
-
----
-
-## Estrutura do projeto
-
-```text
-occupations-data-pipeline/
-│
-├── data/
-│   ├── raw/
-│   │   ├── cbo.csv
-│   │   └── ...
-│   │
-│   └── processed/
-│       └── occupations_processed.csv
-│
-├── src/
-│   └── ingest_occupations.py
-│
-├── requirements.txt
-├── README.md
-└── .gitignore
-```
-
----
-
-## Tecnologias utilizadas
-
-### Atualmente
-
-- Python
-- Requests
-- Pandas
-- CSV
-- JSON
-- Git
-- GitHub
-
-### Futuramente
-
-- Parquet
-- PostgreSQL
-- SQL
-- Docker
-- AWS S3
-- AWS RDS
-- Terraform
-- Kafka
-- Spark
-
----
-
-## Como executar
-
-Clone o projeto:
-
-```bash
-git clone <repository-url>
-cd occupations-data-pipeline
-```
-
-Crie um ambiente virtual:
-
-```bash
-python -m venv .venv
-```
-
-No Windows:
-
-```bash
-.venv\Scripts\activate
-```
-
-Instale as dependências:
-
-```bash
-pip install -r requirements.txt
-```
-
-Execute o pipeline:
-
-```bash
-python src/ingest_occupations.py
-```
-
-Para realizar uma busca por palavra-chave:
-
-```bash
-python src/ingest_occupations.py --search engenheiro
-```
-
----
-
-## Exemplo de execução
-
-```text
-Registros recebidos: 13
-Linhas duplicadas encontradas: 10
-CBOs únicos duplicados: 3
-Registros sem nome: 3
-Registros após limpeza: 2
-Registros descartados: 11
-Registros após filtro: 2
-Arquivo salvo em: data/processed/occupations_processed.csv
-```
-
-Os valores acima representam apenas um conjunto de testes utilizado durante o desenvolvimento e não representam necessariamente a quantidade de registros existente na fonte oficial.
-
----
-
-## Próximas etapas
-
-### Etapa 3 — CSV, JSON e Parquet
-
-Trabalhar com diferentes formatos de armazenamento e entender quando cada um é mais adequado.
-
-Objetivos:
-
-- trabalhar com CSV;
-- trabalhar com JSON;
-- introduzir o formato Parquet;
-- comparar tamanho dos arquivos;
-- comparar estrutura dos dados;
-- ler os arquivos novamente utilizando Pandas;
-- validar se os dados permanecem consistentes após a conversão.
-
-Fluxo esperado:
-
-```text
-API
- ↓
-JSON Raw
- ↓
-Pandas / DataFrame
- ↓
-Validação
- ↓
-CSV
- ↓
-Parquet
-```
-
-### Etapa 4 — PostgreSQL
-
-- Modelagem relacional;
-- criação das tabelas;
-- definição de chaves;
-- carga dos dados;
-- constraints;
-- integridade dos dados;
-- conexão do pipeline com o banco.
-
-### Etapa 5 — SQL e Analytics
-
-- consultas analíticas;
-- agregações;
-- métricas;
-- análise das ocupações;
-- criação de indicadores;
-- exploração dos dados utilizando SQL.
-
-### Etapa 6 — Docker
-
-- Containerização do pipeline;
-- PostgreSQL em container;
-- configuração do ambiente;
-- execução reproduzível do projeto.
-
-### Etapa 7 — AWS S3
-
-- armazenamento dos dados na nuvem;
-- organização dos dados por camadas;
-- introdução ao conceito de Data Lake;
-- integração do pipeline com armazenamento em cloud.
-
-### Etapa 8 — AWS RDS
-
-- utilização de PostgreSQL gerenciado;
-- conexão do pipeline com banco remoto;
-- separação entre aplicação, banco e infraestrutura.
-
-### Etapa 9 — Terraform
-
-- Infraestrutura como código;
-- provisionamento dos recursos utilizados pelo projeto;
-- configuração reproduzível da infraestrutura.
-
-### Etapas futuras
-
-Após a construção do pipeline principal, o projeto poderá evoluir para:
-
-- Kafka;
-- processamento de streaming;
-- Apache NiFi;
-- Spark;
-- processamento distribuído;
-- enriquecimento das informações das ocupações;
-- geração de dados adicionais utilizando IA.
-
----
-
-## Status
-
-🚧 Em desenvolvimento
-
-**Etapa atual:** 2 — Ingestão de dados via API pública.
-
-O projeto está sendo desenvolvido incrementalmente como parte de uma jornada prática de aprendizado em Engenharia de Dados.
+Próximo passo: preparar a organização dos dados para armazenamento em cloud com AWS S3.

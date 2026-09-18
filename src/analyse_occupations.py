@@ -44,16 +44,6 @@ for row in max_and_min_name_occupations_result:
         min_name = row[0]
         min_length = row[1]
 
-
-#print("SQL             Resultado")
-#print('-----------------------------')
-#print("COUNT(*)          ",count_occupations_result[0][0])
-#print("COUNT(DISTINCT cod_cbo)      ", count_distinct_occupations_result[0][0])
-#print("COUNT(cod_cbo) is NULL or empty", count_name_null_or_empty_occupations_result[0][0])
-#print("LENGTH(nome_cbo) MAX and MIN", max_and_min_name_occupations_result)
-#print("search_occupation = 'engenheiro'         ", search_name_occupation_result)
-#print("sample_occupations          ", sample_occupations_result)
-
 search_rows = ""
 
 for row in  search_name_occupation_result:
