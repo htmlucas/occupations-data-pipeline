@@ -1,22 +1,24 @@
 import requests
 import pandas as pd
-from io import StringIO
 from pathlib import Path
 from datetime import datetime
 import json
 import time
-
+from upload_to_s3 import upload_file
 from export import export_csv, export_parquet
 from transform import transform_occupations
 
-# Enquanto o pandas.read_csv() trabalha muito bem recebendo algo que se comporta como um arquivo.
-# O StringIO pega a string e cria um objeto que funciona como um arquivo em memória:
+# Tempos
+execution_time = datetime.now()
+run_id = execution_time.strftime("%Y-%m-%d_%H-%M-%S")
+requested_at = execution_time.isoformat()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 RAW_DIR = BASE_DIR / "data" / "raw"
 METADATA_DIR = BASE_DIR / "data" / "metadata"
 PROCESSED_DIR = BASE_DIR / "data" / "processed"
+S3_BUCKET_NAME  = "occupations-data-pipeline-lucas-2026"
 
 raw_csv_name = "official_occupations.csv"
 processed_csv_name = "official_occupations_processed.csv"
@@ -32,16 +34,18 @@ metadata_output_file = METADATA_DIR / metadata_json_name
 url = "https://www.gov.br/trabalho-e-emprego/pt-br/assuntos/cbo/servicos/downloads/cbo2002-ocupacao.csv"
 
 # usar requests;
-res = requests.get(url)
+res = requests.get(url, timeout=30)
 
 # usar response.raise_for_status();
 res.raise_for_status()
 
-# converter o JSON em DataFrame
-occupations = pd.read_csv(StringIO(res.text), sep = ';')
+# RAW: guarda exatamente o que veio da fonte
+with open(raw_output_file, "wb") as file:
+    file.write(res.content)
 
-# salvar a resposta recebida sem modificá-la;
-export_csv(occupations,raw_output_file)
+# PROCESSAMENTO
+# A fonte oficial da CBO utiliza uma codificação compatível com Latin-1.
+occupations = pd.read_csv(raw_output_file, sep=';',encoding='latin1')
 
 # validar;
 try:
@@ -105,11 +109,73 @@ print(f"Tempo de leitura Parquet: {tempo_parquet:.6f} segundos")
 # quantidade descartada;
 
 metadata = {
+    "run_id" : run_id,
     "source" : url,
-    "requested_at" : datetime.now().isoformat(),
+    "requested_at" : requested_at,
     "status_code": res.status_code,
     "content_type": res.headers.get('Content-Type'),
+    "received_quantity": len(occupations),
+    "processed_quantity": len(new_occupations),
+    "descarted_quantity": len(occupations) - len(new_occupations),
 }
 
 with open(metadata_output_file, 'w', encoding='utf-8' ) as file:
     json.dump(metadata, file, ensure_ascii= False, indent=4)
+
+# Enviar arquivos para o Aws S3 Bucket - occupations-data-pipeline-lucas-2026
+
+print('Iniciando o upload pro S3')
+
+# RAW
+
+raw_s3_key = f"raw/{run_id}/{raw_csv_name}"
+
+processed_csv_s3_key = (
+    f"processed/{run_id}/{processed_csv_name}"
+)
+
+processed_parquet_s3_key = (
+    f"processed/{run_id}/{processed_parquet_name}"
+)
+
+metadata_s3_key = (
+    f"reports/{run_id}/{metadata_json_name}"
+)
+
+raw_return = upload_file(
+    file_name=str(raw_output_file),
+    bucket=S3_BUCKET_NAME,
+    object_name=raw_s3_key,
+)
+
+print('RAW:',raw_return)
+
+# PROCESSED
+
+processed_return = upload_file(
+    file_name=str(processed_output_file),
+    bucket=S3_BUCKET_NAME,
+    object_name=processed_csv_s3_key,
+)
+
+print('PROCESSED:',processed_return)
+
+# PARQUET
+
+parquet_return = upload_file(
+    file_name=str(parquet_output_file),
+    bucket=S3_BUCKET_NAME,
+    object_name=processed_parquet_s3_key,
+)
+
+print('PARQUET:', parquet_return)
+
+# Metadata
+
+metadata_return = upload_file(
+    file_name=str(metadata_output_file),
+    bucket=S3_BUCKET_NAME,
+    object_name=metadata_s3_key,
+)
+
+print('METADATA:', metadata_return)
