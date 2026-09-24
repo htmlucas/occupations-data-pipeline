@@ -1,7 +1,8 @@
 .env
 .env.*
 !.env.example
-
+.env.rds
+!.env.rds.example
 __pycache__/
 *.pyc
 
