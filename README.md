@@ -114,3 +114,61 @@ Com isso, reduzi a dependência da configuração local e aproximei o projeto de
 O fluxo já contempla ingestão via API, transformação com Pandas, geração de arquivos, carga no PostgreSQL e consultas analíticas.
 
 Próximo passo: preparar a organização dos dados para armazenamento em cloud com AWS S3.
+
+# Etapa 7 (Armazenamento no Bucket S3 da Amazon)
+
+# Etapa 8 (Integração do Pipeline com o Amazon RDS)
+Amazon RDS
+
+O pipeline possui suporte a PostgreSQL local e PostgreSQL hospedado no Amazon RDS.
+
+O ambiente utilizado pode ser selecionado através da variável APP_ENV:
+
+APP_ENV=local
+
+utiliza o PostgreSQL executado pelo Docker.
+
+APP_ENV=rds
+
+utiliza a instância PostgreSQL no Amazon RDS.
+
+O projeto utiliza conexão SSL para o RDS e mantém as credenciais fora do código-fonte através de arquivos de ambiente não versionados.
+
+Fluxo
+API
+ ↓
+Python + Pandas
+ ↓
+CSV / Parquet
+ ↓
+S3
+ ↓
+PostgreSQL
+ ├── Docker
+ └── Amazon RDS
+Testar conexão
+
+PostgreSQL local:
+
+$env:APP_ENV="local"
+python src/test_connection.py
+
+Amazon RDS:
+
+$env:APP_ENV="rds"
+python src/test_connection.py
+Carga
+
+A mesma rotina de carga pode ser executada em ambos os ambientes. O destino é definido através do ambiente configurado.
+
+A carga utiliza cod_cbo como identificador único e pode ser reexecutada sem gerar registros duplicados.
+
+Documentação
+
+A configuração detalhada do Amazon RDS está disponível em docs/rds.md.
+
+## Comparação entre PostgreSQL Local e Amazon RDS
+
+O projeto possui uma rotina que executa as mesmas validações nos bancos local e remoto e gera um relatório comparativo em `reports/database_comparison.md`.
+
+As validações incluem quantidade de registros, quantidade de CBOs distintos, duplicidades e nomes nulos ou vazios.
