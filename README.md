@@ -116,6 +116,19 @@ O fluxo já contempla ingestão via API, transformação com Pandas, geração d
 Próximo passo: preparar a organização dos dados para armazenamento em cloud com AWS S3.
 
 # Etapa 7 (Armazenamento no Bucket S3 da Amazon)
+Evoluí meu pipeline de dados sobre ocupações profissionais para utilizar o Amazon S3 como camada de armazenamento em nuvem.
+
+O projeto agora organiza os arquivos em camadas raw, processed e reports, mantendo a separação entre dados brutos, dados tratados e resultados das execuções.
+
+Também implementei o upload dos arquivos utilizando Python e boto3 e adicionei histórico de execução: cada execução do pipeline recebe um identificador (run_id), permitindo manter versões diferentes dos dados no S3 em vez de sobrescrever a execução anterior.
+
+Na prática, cada execução passa a gerar uma estrutura como:
+
+raw/<run_id>/
+processed/<run_id>/
+reports/<run_id>/
+
+Essa etapa foi importante para entender, na prática, a diferença entre armazenamento de objetos em cloud e persistência relacional em PostgreSQL, além de trabalhar com versionamento lógico e histórico de execuções.
 
 # Etapa 8 (Integração do Pipeline com o Amazon RDS)
 Amazon RDS
