@@ -6,6 +6,12 @@
 __pycache__/
 *.pyc
 
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+
 .venv/
 venv/
 
