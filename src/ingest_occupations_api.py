@@ -1,16 +1,18 @@
 import requests
 import pandas as pd
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 import time
 from upload_to_s3 import upload_file
 from export import export_csv, export_parquet
 from transform import transform_occupations
+from save_pipeline_run import save_pipeline_run
 
 # Tempos
 execution_time = datetime.now()
 run_id = execution_time.strftime("%Y-%m-%d_%H-%M-%S")
+started_at = datetime.now(timezone.utc)
 requested_at = execution_time.isoformat()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -52,6 +54,12 @@ try:
     new_occupations = transform_occupations(occupations)
 except ValueError as error:
     print(f"Erro na transformação: {error}")
+    save_pipeline_run(
+        name = "teste_validation",
+        status = "FAILED",
+        created_at = started_at,
+        error_message=str(error),
+    )
     raise
 
 # contar quantos cod_cbo distintos aparecem mais de uma vez;
@@ -179,3 +187,16 @@ metadata_return = upload_file(
 )
 
 print('METADATA:', metadata_return)
+
+finished_at = datetime.now(timezone.utc)
+
+save_pipeline_run(
+    name='occupations_pipeline',
+    status='SUCCESS',
+    started_at=started_at,
+    finished_at=finished_at,
+    records_received=len(occupations),
+    records_processed=len(new_occupations),
+    records_discarded=len(occupations) - len(new_occupations),
+    created_at=finished_at
+)
