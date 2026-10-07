@@ -4,6 +4,7 @@ from pathlib import Path
 from datetime import datetime, timezone
 from transform import transform_occupations
 from save_pipeline_run import save_pipeline_run
+from incremental_load import incremental_load
 
 # Tempos
 execution_time = datetime.now()
@@ -58,6 +59,18 @@ except ValueError as error:
     )
     raise
 
+#new_occupations.loc[len(new_occupations)] = [
+#    999999,
+#    "TESTE - Nova ocupação"
+#]
+
+#new_occupations.loc[
+#    new_occupations["CODIGO"] == 10105,
+#    "TITULO"
+#] = "TESTE - Oficial general da aeronáutica"
+
+incremental_load(new_occupations)
+
 # contar quantos cod_cbo distintos aparecem mais de uma vez;
 occupations_counts = new_occupations['CODIGO'].value_counts()
 
@@ -76,3 +89,4 @@ save_pipeline_run(
     records_discarded=len(occupations) - len(new_occupations),
     created_at=finished_at
 )
+
